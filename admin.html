@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Adicionar e-books</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#142a25">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#efe9df,#11241f);--card:light-dark(#fbf8f2,#1a332d);--ink:light-dark(#1d1a16,#efe8dc);--mute:light-dark(#6b6357,#a9b5ae);--line:light-dark(#d6ccbb,#2c4a42);--acc:#e0a447;--ok:#1fa463;--bad:#c0392b}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px 60px}
+a{color:inherit}
+h1{font:400 clamp(30px,8vw,40px)/1.05 "DM Serif Display",serif;margin:8px 0 4px}
+h2{font:400 22px/1.2 "DM Serif Display",serif;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 16px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 5px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:46px}
+textarea{min-height:96px;resize:vertical}
+input[type=file]{padding:9px}
+.b{min-height:46px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 15px Inter,sans-serif;cursor:pointer}
+.b.pri{background:var(--acc);border-color:var(--acc);color:#241605}
+.b:disabled{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.st{font-size:14px;margin-top:10px}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.warn{background:color-mix(in srgb,var(--acc) 16%,transparent);border:1px solid color-mix(in srgb,var(--acc) 50%,transparent);border-radius:14px;padding:12px 14px;font-size:14px;margin:0 0 16px}
+.cvp{display:flex;gap:14px;align-items:center;margin-top:12px}
+.cvp img,.cvp canvas{width:84px;height:126px;object-fit:cover;border-radius:4px 8px 8px 4px;box-shadow:0 6px 14px rgba(0,0,0,.3);background:#0003}
+.list{display:flex;flex-direction:column;gap:10px}
+.it{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.it img{width:56px;height:84px;object-fit:cover;border-radius:3px 6px 6px 3px;background:#0003}
+.it b{display:block;font-size:15px;line-height:1.25}
+.it small{color:var(--mute);font-size:12.5px}
+.it .row{margin-top:6px}
+.it select{min-height:38px;padding:6px 10px;font-size:14px;width:auto;max-width:100%}
+.it .b{min-height:38px;padding:0 12px;font-size:13px}
+ol{padding-left:20px;margin:6px 0}ol li{margin:4px 0;font-size:14.5px}
+.hide{display:none}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="./" style="font-size:14px;color:var(--mute)">← Voltar para a estante</a>
+  <h1>Adicionar e-books</h1>
+  <p class="sub">Suba arquivos para a Biblioteca e escolha em qual gênero cada um aparece. Você pode criar gêneros novos.</p>
+  <div class="warn"><b>Importante:</b> tudo o que você subir aqui fica <b>público</b>. Qualquer pessoa com o link da estante consegue abrir. Suba só materiais que podem ser divulgados, como regras, manuais e leis oficiais. Nada de conteúdo confidencial.</div>
+
+  <div class="card" id="cConn">
+    <h2>1. Conectar</h2>
+    <p style="margin:0;font-size:14.5px">Para publicar, esta página precisa de uma <b>chave do GitHub</b>. A chave fica guardada só neste aparelho e não vai para o site.</p>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:14.5px;font-weight:600">Como criar a chave (só uma vez)</summary>
+      <ol>
+        <li>Abra <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> com a sua conta do GitHub.</li>
+        <li><b>Token name:</b> Minha Estante. <b>Expiration:</b> escolha a validade que preferir.</li>
+        <li><b>Repository access:</b> <i>Only select repositories</i> → escolha <b>minha-estante</b>.</li>
+        <li><b>Permissions → Repository permissions → Contents:</b> <i>Read and write</i>.</li>
+        <li>Toque em <b>Generate token</b>, copie a chave e cole abaixo.</li>
+      </ol>
+    </details>
+    <label for="tok">Chave do GitHub</label>
+    <input id="tok" type="password" autocomplete="off" placeholder="github_pat_…">
+    <div class="row"><button class="b pri" id="tokSave">Conectar</button><button class="b" id="tokForget">Esquecer chave</button></div>
+    <div class="st" id="tokSt"></div>
+  </div>
+
+  <div class="card" id="cAdd">
+    <h2>2. Novo e-book</h2>
+    <label for="f">Arquivo (PDF, EPUB, TXT ou CBZ)</label>
+    <input id="f" type="file" accept=".pdf,.epub,.txt,.cbz,application/pdf,application/epub+zip,text/plain">
+    <label for="ti">Título</label><input id="ti" maxlength="120">
+    <label for="au">Autor ou setor</label><input id="au" maxlength="80" placeholder="Ex.: Recursos Humanos">
+    <label for="ge">Gênero (estante onde vai aparecer)</label>
+    <select id="ge"></select>
+    <input id="geNew" class="hide" maxlength="40" placeholder="Nome do novo gênero, ex.: Corporativo" style="margin-top:8px">
+    <label for="de">Descrição</label><textarea id="de" maxlength="1500" placeholder="Do que trata este e-book?"></textarea>
+    <label>Capa</label>
+    <div class="cvp"><canvas id="cv" width="600" height="900"></canvas><div><p style="margin:0 0 8px;font-size:14px;color:var(--mute)" id="cvInfo">A capa é criada automaticamente a partir do arquivo.</p><input id="ci" type="file" accept="image/*" style="min-height:40px"></div></div>
+    <div class="row"><button class="b pri" id="pub" disabled>Publicar na biblioteca</button></div>
+    <div class="bar hide" id="pbar"><i></i></div>
+    <div class="st" id="pubSt"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. E-books publicados</h2>
+    <div class="list" id="list"><p class="st" style="margin:0">Conecte a chave para ver a lista.</p></div>
+  </div>
+</div>
+<script type="module">
+import {GENRES} from './catalog.js';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const REPO='jhony369/minha-estante',API=`https://api.github.com/repos/${REPO}/contents/`,CAT='acervo/catalogo.json';
+let tok='';try{tok=localStorage.getItem('estante.gh')||''}catch(e){}
+let catalog={livros:[]},catSha=null,coverBlob=null,coverAuto=true;
+const st=(el,msg,cls='')=>{const e=$(el);e.textContent=msg;e.className='st '+cls};
+async function gh(path,opt={}){const r=await fetch(API+path,Object.assign({},opt,{headers:{Authorization:'Bearer '+tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'},cache:'no-store'}));if(!r.ok){const t=await r.text().catch(()=>'');const err=new Error(r.status+' '+t.slice(0,200));err.status=r.status;throw err}return r.status===204?null:r.json()}
+const b64utf=s=>{const by=new TextEncoder().encode(s);let bin='';for(let i=0;i<by.length;i+=32768)bin+=String.fromCharCode.apply(null,by.subarray(i,i+32768));return btoa(bin)};
+const utfb64=b=>new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\n/g,'')),c=>c.charCodeAt(0)));
+const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
+async function loadCatalog(){const j=await gh(CAT);catSha=j.sha;catalog=JSON.parse(utfb64(j.content));if(!Array.isArray(catalog.livros))catalog.livros=[]}
+async function saveCatalog(msg){const body={message:msg,content:b64utf(JSON.stringify(catalog,null,1)+'\n'),sha:catSha};const j=await gh(CAT,{method:'PUT',body:JSON.stringify(body)});catSha=j.content.sha}
+async function putFile(path,blob,msg){return gh(path,{method:'PUT',body:JSON.stringify({message:msg,content:await blobB64(blob)})})}
+async function delFile(path,msg){try{const j=await gh(path);await gh(path,{method:'DELETE',body:JSON.stringify({message:msg,sha:j.sha})})}catch(e){if(e.status!==404)throw e}}
+function genreNames(){const s=new Set(GENRES.map(g=>g.n.split(' · ')[0]==='Machado de Assis'?null:g.n).filter(Boolean));for(const l of catalog.livros)if(l.genero)s.add(l.genero);return [...s]}
+function fillGenres(sel){const own=[...new Set(catalog.livros.map(l=>l.genero).filter(Boolean))];const base=GENRES.map(g=>g.n).filter(n=>!n.startsWith('Machado'));
+ $('#ge').innerHTML=`<option value="">Escolha um gênero…</option><option value="__new">➕ Criar novo gênero…</option>`+(own.length?`<optgroup label="Seus gêneros">${own.map(n=>`<option>${esc(n)}</option>`).join('')}</optgroup>`:'')+`<optgroup label="Gêneros da biblioteca">${base.filter(n=>!own.includes(n)).map(n=>`<option>${esc(n)}</option>`).join('')}</optgroup>`;if(sel)$('#ge').value=sel}
+function renderList(){const L=$('#list');if(!catalog.livros.length){L.innerHTML='<p class="st" style="margin:0">Nenhum e-book publicado ainda.</p>';return}
+ const opts=n=>genreNames().map(g=>`<option${g===n?' selected':''}>${esc(g)}</option>`).join('');
+ L.innerHTML=catalog.livros.map((l,i)=>`<div class="it"><img alt="" src="${esc(l.capa||'icon-192.png')}"><div><b>${esc(l.titulo)}</b><small>${esc(l.autor||'')} · ${esc((l.formato||'').toUpperCase())}</small><div class="row"><select data-mv="${i}" aria-label="Gênero de ${esc(l.titulo)}">${opts(l.genero)}</select><button class="b" data-del="${i}">Excluir</button></div></div></div>`).join('')}
+async function connect(){if(!tok){st('#tokSt','Cole a chave para conectar.');return}st('#tokSt','Conectando…');
+ try{await loadCatalog();st('#tokSt','Conectado! Você já pode publicar.','ok');fillGenres();renderList();$('#pub').disabled=false}
+ catch(e){st('#tokSt',e.status===401?'Chave inválida ou vencida.':e.status===404?'Não encontrei a biblioteca no GitHub. Confira se a chave tem acesso ao repositório minha-estante.':e.status===403?'A chave não tem permissão. Confira "Contents: Read and write".':'Não consegui conectar: '+e.message,'bad')}}
+$('#tokSave').onclick=()=>{tok=$('#tok').value.trim();try{localStorage.setItem('estante.gh',tok)}catch(e){}$('#tok').value='';connect()};
+$('#tokForget').onclick=()=>{tok='';try{localStorage.removeItem('estante.gh')}catch(e){}st('#tokSt','Chave apagada deste aparelho.');$('#pub').disabled=true};
+$('#ge').onchange=()=>{$('#geNew').classList.toggle('hide',$('#ge').value!=='__new');if($('#ge').value==='__new')$('#geNew').focus()};
+// capa
+const cv=$('#cv'),cx=cv.getContext('2d');
+function genCover(title,author){const W=600,H=900;const pal=['#1d3557','#264653','#3d405b','#5b3f8c','#7a4419','#0f4c5c','#6d597a','#2a7f62'];const c=pal[[...title].reduce((a,ch)=>a+ch.charCodeAt(0),0)%pal.length];
+ const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,c);g.addColorStop(1,'#0b0f14');cx.fillStyle=g;cx.fillRect(0,0,W,H);cx.strokeStyle='#d8b46a';cx.lineWidth=6;cx.strokeRect(28,28,W-56,H-56);cx.lineWidth=2;cx.strokeRect(44,44,W-88,H-88);
+ cx.fillStyle='#f4ecdd';cx.textAlign='center';let fs=64;cx.font=`400 ${fs}px "DM Serif Display",serif`;const words=(title||'Sem título').split(' ');const lines=[];let cur='';for(const w of words){const t=(cur+' '+w).trim();if(cx.measureText(t).width>W-140&&cur){lines.push(cur);cur=w}else cur=t}lines.push(cur);
+ let y=H*.38-lines.length*fs*.55;for(const l of lines.slice(0,5)){cx.fillText(l,W/2,y);y+=fs*1.15}cx.fillStyle='#d8b46a';cx.fillRect(W/2-50,y+10,100,3);cx.font='600 30px Inter,sans-serif';cx.fillStyle='#e9dcc4';cx.fillText(author||'',W/2,y+70)}
+function drawImg(bm){cx.fillStyle='#fff';cx.fillRect(0,0,600,900);const r=Math.max(600/bm.width,900/bm.height);const w=600/r,h=900/r;cx.drawImage(bm,(bm.width-w)/2,(bm.height-h)/2,w,h,0,0,600,900)}
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+async function autoCover(file,fmt){try{
+ if(fmt==='pdf'){if(!window.pdfjsLib){await loadScript('lib/pdf.min.js');pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js'}const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false}).promise;const pg=await pdf.getPage(1);const v=pg.getViewport({scale:1});const vp=pg.getViewport({scale:900/v.height});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;drawImg(c);pdf.destroy();return true}
+ if(fmt==='epub'||fmt==='cbz'){if(!window.JSZip)await loadScript('lib/jszip.min.js');const z=await JSZip.loadAsync(file);let name=null;
+  if(fmt==='cbz'){name=Object.keys(z.files).filter(n=>/\.(jpe?g|png|webp|gif)$/i.test(n)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))[0]}
+  else{name=Object.keys(z.files).find(n=>/cover.*\.(jpe?g|png)$/i.test(n))||Object.keys(z.files).find(n=>/\.(jpe?g|png)$/i.test(n))}
+  if(name){drawImg(await createImageBitmap(await z.file(name).async('blob')));return true}}
+ }catch(e){console.warn(e)}return false}
+async function refreshCover(){const f=$('#f').files[0];if(!coverAuto)return;genCover($('#ti').value.trim(),$('#au').value.trim());coverBlob=null;
+ if(f){const fmt=fmtOf(f);if(fmt&&fmt!=='txt'){$('#cvInfo').textContent='Gerando a capa a partir do arquivo…';const ok=await autoCover(f,fmt);$('#cvInfo').textContent=ok?'Capa tirada do arquivo. Se preferir, escolha outra imagem.':'Capa criada com o título. Se preferir, escolha uma imagem.'}else $('#cvInfo').textContent='Capa criada com o título. Se preferir, escolha uma imagem.'}}
+const fmtOf=f=>({pdf:'pdf',epub:'epub',txt:'txt',cbz:'cbz'})[(f.name.split('.').pop()||'').toLowerCase()];
+$('#f').onchange=()=>{const f=$('#f').files[0];if(!f)return;if(!fmtOf(f)){st('#pubSt','Use um arquivo PDF, EPUB, TXT ou CBZ.','bad');return}if(f.size>45e6){st('#pubSt','Arquivo grande demais (máximo 45 MB).','bad');return}st('#pubSt','');if(!$('#ti').value)$('#ti').value=f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim().slice(0,120);coverAuto=true;refreshCover()};
+$('#ti').oninput=$('#au').oninput=()=>{if(coverAuto&&(!$('#f').files[0]||fmtOf($('#f').files[0])==='txt'))genCover($('#ti').value.trim(),$('#au').value.trim())};
+$('#ci').onchange=async()=>{const f=$('#ci').files[0];if(!f)return;coverAuto=false;drawImg(await createImageBitmap(f));$('#cvInfo').textContent='Usando a imagem escolhida.'};
+genCover('Título do e-book','');
+const slug=t=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'ebook';
+const prog=p=>{$('#pbar').classList.remove('hide');$('#pbar i').style.width=p+'%'};
+$('#pub').onclick=async()=>{const f=$('#f').files[0];const ti=$('#ti').value.trim();let ge=$('#ge').value;if(ge==='__new')ge=$('#geNew').value.trim();
+ if(!f)return st('#pubSt','Escolha o arquivo do e-book.','bad');if(!ti)return st('#pubSt','Escreva o título.','bad');if(!ge)return st('#pubSt','Escolha ou crie um gênero.','bad');
+ const fmt=fmtOf(f);if(!fmt)return st('#pubSt','Formato não suportado.','bad');
+ $('#pub').disabled=true;st('#pubSt','Publicando… não feche esta página.');prog(5);
+ try{await loadCatalog();prog(15);const base=`acervo/${slug(ti)}-${Date.now().toString(36)}`;const fpath=base+'.'+fmt,cpath=base+'.jpg';
+  await putFile(fpath,f,'Adiciona e-book: '+ti);prog(70);
+  const cb=await new Promise(r=>cv.toBlob(r,'image/jpeg',.86));await putFile(cpath,cb,'Capa: '+ti);prog(85);
+  catalog.livros.push({titulo:ti,autor:$('#au').value.trim(),genero:ge,descricao:$('#de').value.trim(),arquivo:fpath,capa:cpath,formato:fmt,data:new Date().toISOString().slice(0,10)});
+  await saveCatalog('Catálogo: + '+ti);prog(100);
+  st('#pubSt','Publicado! Em cerca de 1 minuto ele aparece na estante "'+ge+'" da Biblioteca.','ok');
+  $('#f').value='';$('#ti').value='';$('#au').value='';$('#de').value='';$('#ci').value='';coverAuto=true;genCover('Título do e-book','');fillGenres(ge);renderList()}
+ catch(e){console.warn(e);st('#pubSt',e.status===409?'Alguém publicou ao mesmo tempo. Tente de novo.':e.status===422?'O GitHub recusou o arquivo (grande demais?).':'Não consegui publicar: '+e.message,'bad')}
+ finally{$('#pub').disabled=false;setTimeout(()=>$('#pbar').classList.add('hide'),1500)}};
+$('#list').addEventListener('click',async e=>{const b=e.target.closest('[data-del]');if(!b)return;const i=+b.dataset.del;const l=catalog.livros[i];if(!l)return;
+ if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Toque de novo para excluir';return}b.disabled=true;
+ try{await loadCatalog();const k=catalog.livros.findIndex(x=>x.arquivo===l.arquivo);if(k>=0)catalog.livros.splice(k,1);await saveCatalog('Catálogo: - '+l.titulo);await delFile(l.arquivo,'Remove e-book: '+l.titulo);if(l.capa)await delFile(l.capa,'Remove capa: '+l.titulo);renderList();fillGenres()}catch(err){alert('Não consegui excluir: '+err.message)}});
+$('#list').addEventListener('change',async e=>{const s=e.target.closest('[data-mv]');if(!s)return;const l=catalog.livros[+s.dataset.mv];if(!l)return;s.disabled=true;
+ try{await loadCatalog();const x=catalog.livros.find(y=>y.arquivo===l.arquivo);if(x){x.genero=s.value;await saveCatalog('Catálogo: '+l.titulo+' → '+s.value)}renderList();fillGenres()}catch(err){alert('Não consegui mudar o gênero: '+err.message);s.disabled=false}});
+if(tok)connect();else fillGenres();
+</script>
+</body>
+</html>
