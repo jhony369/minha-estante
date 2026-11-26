@@ -50,7 +50,7 @@ function build(api){
   el.innerHTML=`<canvas></canvas>
   <div class="lbtop"><button class="lbb" id="lbBack">← Estante</button><b>Biblioteca</b><button class="lbb" id="lbMenu">Gêneros</button></div>
   <div class="lbjoy"><i></i></div>
-  <div class="lbhint" id="lbHint">Arraste no lado <b>esquerdo</b> para andar e no <b>direito</b> para olhar.<br>Toque num livro colorido para ver a sinopse.</div>
+  <div class="lbhint" id="lbHint">Arraste no lado <b>esquerdo</b> para andar e no <b>direito</b> para olhar.<br>Toque em qualquer livro para ver a sinopse. Os de fita verde dá para ler grátis.</div>
   <div class="lbmenu" id="lbMenuP"><h2>Para onde vamos?</h2><input id="lbQ" type="search" placeholder="Buscar livro ou autor…" aria-label="Buscar livro na biblioteca"><div class="gl" id="lbGl"></div></div>
   <div class="lbload" id="lbLoad"><div>Abrindo a biblioteca…<small>Preparando as prateleiras</small></div></div>`;
   document.body.appendChild(el);el.classList.add('open');
@@ -74,13 +74,13 @@ function build(api){
   const box=(w,h,d,m,x,y,z,parent)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);(parent||scene).add(o);return o};
 
   // --- salão ---
-  const N=GENRES.length,PAIRS=Math.ceil(N/2),GAP=3.5,Z0=-1.5,LEN=PAIRS*GAP+6;const zEnd=Z0-(PAIRS-1)*GAP-3.2;
+  const N=GENRES.length,PAIRS=Math.ceil(N/2),GAP=1.55,Z0=-1.2,LEN=PAIRS*GAP+6;const zEnd=Z0-(PAIRS-1)*GAP-2.6;
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(6,LEN+6),new THREE.MeshLambertMaterial({map:floorTex}));floor.rotation.x=-Math.PI/2;floor.position.set(0,0,(3+zEnd)/2);scene.add(floor);
   const rug=new THREE.Mesh(new THREE.PlaneGeometry(1.5,LEN-1),new THREE.MeshLambertMaterial({map:rugTex}));rug.rotation.x=-Math.PI/2;rug.position.set(0,.005,(3+zEnd)/2+.5);scene.add(rug);
   const wallM=new THREE.MeshLambertMaterial({map:wallTex});
   for(const s of[-1,1]){const w=new THREE.Mesh(new THREE.PlaneGeometry(LEN+6,4.2),wallM);w.position.set(s*2.75,2.1,(3+zEnd)/2);w.rotation.y=-s*Math.PI/2;scene.add(w)}
   const ceil=new THREE.Mesh(new THREE.PlaneGeometry(6,LEN+6),new THREE.MeshLambertMaterial({color:'#24150b'}));ceil.rotation.x=Math.PI/2;ceil.position.set(0,4.2,(3+zEnd)/2);scene.add(ceil);
-  for(let z=3;z>zEnd-1;z-=GAP/2)box(5.6,.22,.26,mWood,0,4.08,z);
+  for(let z=3;z>zEnd-1;z-=GAP)box(5.6,.22,.26,mWood,0,4.08,z);
   // parede do fundo com janela em arco
   const endTex=tex(1024,1024,(x,w,h)=>{x.fillStyle='#1d3a31';x.fillRect(0,0,w,h);x.save();x.beginPath();x.moveTo(300,900);x.lineTo(300,420);x.arc(512,420,212,Math.PI,0);x.lineTo(724,900);x.closePath();const g=x.createLinearGradient(0,200,0,900);g.addColorStop(0,'#0b1a3a');g.addColorStop(.7,'#24406e');g.addColorStop(1,'#d79a5a');x.fillStyle=g;x.fill();x.clip();for(let i=0;i<120;i++){x.fillStyle=`rgba(255,255,255,${Math.random()*.8})`;x.fillRect(300+Math.random()*424,200+Math.random()*500,2,2)}x.fillStyle='#fff6dc';x.shadowColor='#fff3c8';x.shadowBlur=40;x.beginPath();x.arc(600,360,46,0,7);x.fill();x.restore();x.strokeStyle='#5b3a22';x.lineWidth=22;x.beginPath();x.moveTo(300,900);x.lineTo(300,420);x.arc(512,420,212,Math.PI,0);x.lineTo(724,900);x.stroke();x.lineWidth=10;x.beginPath();x.moveTo(512,208);x.lineTo(512,900);x.moveTo(300,560);x.lineTo(724,560);x.stroke();x.fillStyle='#d8b46a';x.font='400 64px "DM Serif Display",serif';x.textAlign='center';x.fillText('Biblioteca',512,140);x.font='600 26px Inter,sans-serif';x.fillText('MINHA ESTANTE',512,180)});
   const endW=new THREE.Mesh(new THREE.PlaneGeometry(5.5,4.2),new THREE.MeshBasicMaterial({map:endTex,color:'#c8c0b8'}));endW.position.set(0,2.1,zEnd-1.2);scene.add(endW);
@@ -92,65 +92,89 @@ function build(api){
   // luzes
   scene.add(new THREE.HemisphereLight('#ffe2b8','#3a2414',1.1));scene.add(new THREE.AmbientLight('#ffdcae',.35));
   const lampMat=new THREE.MeshBasicMaterial({color:'#ffe6b0'});
-  for(let i=0;i<PAIRS;i++){const z=Z0-i*GAP;const pl=new THREE.PointLight('#ffc884',14,10,1.6);pl.position.set(0,3.2,z);scene.add(pl);
+  for(let i=0;i<PAIRS;i+=2){const z=Z0-(i+.5)*GAP;const pl=new THREE.PointLight('#ffc884',16,9,1.6);pl.position.set(0,3.2,z);scene.add(pl);
     box(.02,.7,.02,mDark,0,3.75,z);const b=new THREE.Mesh(new THREE.SphereGeometry(.12,16,12),lampMat);b.position.set(0,3.35,z);scene.add(b);
     const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.scale.set(1.6,1.6,1);sp.position.copy(b.position);scene.add(sp);
     const ring=new THREE.Mesh(new THREE.TorusGeometry(.38,.025,8,32),new THREE.MeshLambertMaterial({color:'#b8892e'}));ring.rotation.x=Math.PI/2;ring.position.set(0,3.4,z);scene.add(ring)}
 
-  // --- estantes ---
+  // --- estantes (só livros reais: capas de frente + lombadas) ---
   const rows=[];const cases=[];
-  const W=2.8,H=2.7,D=.42,RH=(H-.17)/5,IW=W-.16;
+  const W=1.12,H=2.62,D=.42,IW=W-.12,PXM=640,TOPY=2.44;
   const fonts=['400 FS "DM Serif Display",serif','400 FS "Bebas Neue",sans-serif','600 FS Oswald,sans-serif','italic 700 FS "Playfair Display",serif','700 FS "Cormorant SC",serif','700 FS "Josefin Sans",sans-serif'];
+  const DEC=['plant','globe','candle','bookend','cat','vase'];
   GENRES.forEach((g,gi)=>{
     const side=gi%2===0?-1:1,zc=Z0-Math.floor(gi/2)*GAP;const grp=new THREE.Group();
-    box(.07,H,D,mWood,-W/2+.035,H/2,0,grp);box(.07,H,D,mWood,W/2-.035,H/2,0,grp);
-    box(W+.18,.12,D+.1,mWood,0,H+.06,.02,grp);box(W+.06,.06,D+.06,mWood,0,H+.15,.03,grp);box(W,.12,D,mWood,0,.06,0,grp);
-    box(W-.1,H-.1,.02,mBack,0,H/2,-D/2+.01,grp);
-    for(let r=1;r<5;r++)box(W-.12,.035,D-.02,mWood,0,.12+r*RH,0,grp);
+    box(.06,H,D,mWood,-W/2+.03,H/2,0,grp);box(.06,H,D,mWood,W/2-.03,H/2,0,grp);
+    box(W+.12,.1,D+.08,mWood,0,H+.05,.02,grp);box(W+.04,.05,D+.05,mWood,0,H+.12,.03,grp);
+    box(W-.08,H-.08,.02,mBack,0,H/2,-D/2+.01,grp);
+    const n=g.books.length;const NR=n>13?4:3;const RH=(TOPY-.16)/4;
+    // gaveteiro fechado embaixo quando há só 3 fileiras
+    const base=.16+(4-NR)*RH;
+    box(W-.06,base,D,mWood,0,base/2,0,grp);
+    if(NR<4){box(W*.42,base-.12,.012,new THREE.MeshLambertMaterial({color:'#7a5032'}),-W*.22,base/2,D/2+.002,grp);box(W*.42,base-.12,.012,new THREE.MeshLambertMaterial({color:'#7a5032'}),W*.22,base/2,D/2+.002,grp)}
+    for(let r=0;r<=NR;r++)box(W-.08,.03,D-.02,mWood,0,base+r*RH,0,grp);
     // placa
-    const signT=tex(1024,180,(x,w,h)=>{const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#3a2414');gr.addColorStop(1,'#24150b');x.fillStyle=gr;x.fillRect(0,0,w,h);x.strokeStyle='#d8b46a';x.lineWidth=6;x.strokeRect(10,10,w-20,h-20);x.fillStyle='#e9c77e';x.textAlign='center';x.textBaseline='middle';x.font='400 84px "DM Serif Display",serif';x.fillText(g.n,w/2,h/2+4)});
-    const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.9,.334),new THREE.MeshBasicMaterial({map:signT,color:'#e8dccb'}));sign.position.set(0,H+.42,.08);grp.add(sign);
+    const isM=g.kind==='manga',isF=g.kind==='free',isH=g.kind==='hq';
+    const signT=tex(1024,200,(x,w,h)=>{const gr=x.createLinearGradient(0,0,0,h);gr.addColorStop(0,isM?'#2a0a0c':isF?'#103026':'#3a2414');gr.addColorStop(1,isM?'#120406':isF?'#0a1d17':'#24150b');x.fillStyle=gr;x.fillRect(0,0,w,h);x.strokeStyle=isM?'#e04b4b':isF?'#5fd39a':'#d8b46a';x.lineWidth=7;x.strokeRect(10,10,w-20,h-20);x.fillStyle=isM?'#ffd6d0':isF?'#c8f5dc':'#e9c77e';x.textAlign='center';x.textBaseline='middle';let fs=74;x.font=`400 ${fs}px "DM Serif Display",serif`;while(x.measureText(g.n).width>w-70&&fs>34){fs-=4;x.font=`400 ${fs}px "DM Serif Display",serif`}x.fillText(g.n,w/2,h/2+3)});
+    const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.22,.238),new THREE.MeshBasicMaterial({map:signT,color:'#ece2d4'}));sign.position.set(0,H+.36,.08);grp.add(sign);
     const R=rnd(hash(g.k));
-    // livros por prateleira
-    const real=g.books.map((b,i)=>({real:true,b,g,i}));const slots=[1,2,3];const perRow=Math.ceil(real.length/3);
-    for(let r=0;r<5;r++){
-      const y0=.12+r*RH+.0175;const list=[];let x=0;
-      const reals=(r>=1&&r<=3)?real.slice((r-1)*perRow,r*perRow):[];
-      const positions=new Set();if(reals.length){const nApprox=Math.floor(IW/.05);const step=nApprox/(reals.length+1);reals.forEach((_,k)=>positions.add(Math.round(step*(k+1)+(R()*4-2))))}
-      let n=0,ri=0;
-      while(true){const left=IW-x;const need=(reals.length-ri)*.08;let it;
-        if(ri<reals.length&&(positions.has(n)||left<need+.06)){const rb=reals[ri++];const w=.055+R()*.022,h=.31+R()*.08;it=Object.assign(rb,{w,h,c:mix(SPINE_PAL[hash(rb.b[0])%SPINE_PAL.length],g.c,.25),st:hash(rb.b[1])%fonts.length})}
-        else if(left<.036){break}
-        else{const w=.032+R()*.028,h=.27+R()*.13;it={real:false,w,h,c:LEATHER[(R()*LEATHER.length)|0],band:R()}}
-        if(x+it.w>IW-.004){if(it.real){it.w=IW-.004-x;if(it.w<.03)break}else break}
-        it.x=x;x+=it.w+.002;list.push(it);n++;
-        if(R()<.04&&x<IW-.15&&!reals.length){x+=.04+R()*.06}}
-      // caixas instanciadas
-      const geo=new THREE.BoxGeometry(1,1,1);const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),list.length);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),col=new THREE.Color();
-      list.forEach((it,k)=>{ps.set(-IW/2+it.x+it.w/2,y0+it.h/2,D/2-.035-.12);sc.set(it.w*.985,it.h,.24);m.compose(ps,q,sc);im.setMatrixAt(k,m);col.set(shade(it.c,-.25));im.setColorAt(k,col)});
-      grp.add(im);
-      let plane=null;
-      if(r>=1&&r<=3){const cw=1024,ch=Math.round(1024*(.44/IW));const c=document.createElement('canvas');c.width=cw;c.height=ch;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,maxAniso);
-        plane=new THREE.Mesh(new THREE.PlaneGeometry(IW,.44),new THREE.MeshLambertMaterial({map:t,transparent:true,alphaTest:.5}));plane.position.set(0,y0+.22,D/2-.034);grp.add(plane)}
-      const row={g,list,plane,im,y0,canvas:plane&&plane.material.map.image,tex:plane&&plane.material.map};rows.push(row);if(plane)plane.userData.row=row;
+    // distribuir livros pelas fileiras
+    const books=g.books.map((b,i)=>({b,g,i,c:mix(SPINE_PAL[hash(b[0])%SPINE_PAL.length],g.c,.3),st:hash(b[1])%fonts.length}));
+    const per=[];for(let r=0;r<NR;r++)per.push([]);books.forEach((it,i)=>per[i%NR].push(it));
+    const items=[];
+    for(let r=0;r<NR;r++){const y0=base+r*RH+.015;const row=per[NR-1-r];
+      // cada fileira: até 2 capas de frente + lombadas + 1 enfeite
+      let nf=Math.min(2,Math.max(1,Math.round(row.length*.45)));
+      const kinds=row.map((_,k)=>k<nf?'f':'s');for(let k=kinds.length-1;k>0;k--){const j=Math.floor(R()*(k+1));[kinds[k],kinds[j]]=[kinds[j],kinds[k]]}
+      let wsum=0;const sized=row.map((it,k)=>{const f=kinds[k]==='f';const w=f?.205+R()*.03:.068+R()*.028;const h=f?Math.min(RH-.07,.29+R()*.04):Math.min(RH-.05,.3+R()*.12);wsum+=w;return Object.assign(it,{face:f,w,h})});
+      let free=IW-.02-wsum-.006*row.length;const dec=free>.13?{dec:DEC[(R()*DEC.length)|0],w:Math.min(.2,free*.5),h:.2}:null;
+      const seq=sized.slice();if(dec)seq.splice((R()*(seq.length+1))|0,0,dec);
+      const used=seq.reduce((a,s)=>a+s.w,0)+.006*seq.length;let gapEach=Math.max(0,(IW-.02-used)/(seq.length+1));gapEach=Math.min(gapEach,.06);
+      let x=(IW-(used+gapEach*(seq.length-1)))/2;
+      for(const s of seq){s.x=x;s.y0=y0;x+=s.w+.006+gapEach;items.push(s)}
     }
+    // caixas (profundidade) para as lombadas e capas
+    const bks=items.filter(s=>s.b);const geo=new THREE.BoxGeometry(1,1,1);const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),bks.length);
+    const m=new THREE.Matrix4(),q=new THREE.Quaternion(),sc=new THREE.Vector3(),ps=new THREE.Vector3(),col=new THREE.Color();
+    bks.forEach((s,k)=>{const dz=s.face?.03:.24;ps.set(-IW/2+s.x+s.w/2,s.y0+s.h/2,D/2-.035-dz/2);sc.set(s.w*.98,s.h,dz);m.compose(ps,q,sc);im.setMatrixAt(k,m);col.set(shade(s.c,-.3));im.setColorAt(k,col);s.k=k});
+    grp.add(im);
+    // painel com a arte de todas as fileiras
+    const AH=TOPY-.16;const cw=Math.round(IW*PXM),ch=Math.round(AH*PXM);const c=document.createElement('canvas');c.width=cw;c.height=ch;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,maxAniso);
+    const plane=new THREE.Mesh(new THREE.PlaneGeometry(IW,AH),new THREE.MeshLambertMaterial({map:t,transparent:true,alphaTest:.5}));plane.position.set(0,.16+AH/2,D/2-.034);grp.add(plane);
+    const row={g,list:items,plane,im,canvas:c,tex:t,AH,base0:.16};rows.push(row);plane.userData.row=row;
     grp.position.set(side*2.27,0,zc);grp.rotation.y=side<0?Math.PI/2:-Math.PI/2;scene.add(grp);
     cases.push({g,side,zc,grp});
   });
-
-  const PXM=1024/IW;
-  function taken(it){return it.real&&L&&L.api.hasBook(it.b[0])}
-  function drawRow(row){if(!row.canvas)return;const c=row.canvas,x=c.getContext('2d'),H2=c.height;x.clearRect(0,0,c.width,H2);
-    for(const it of row.list){if(taken(it))continue;const px=it.x*PXM,pw=it.w*PXM,ph=it.h*PXM,py=H2-ph;
-      const gr=x.createLinearGradient(px,0,px+pw,0);gr.addColorStop(0,shade(it.c,-.45));gr.addColorStop(.18,shade(it.c,.12));gr.addColorStop(.45,it.c);gr.addColorStop(1,shade(it.c,-.5));x.fillStyle=gr;x.fillRect(px,py,pw,ph);
-      if(it.real){const k='#d8b46a';const fg=lum(it.c)>.58?'#1d1610':'#f7efe2';x.fillStyle=k;x.fillRect(px+2,py+6,pw-4,2);x.fillRect(px+2,py+10,pw-4,1);x.fillRect(px+2,H2-12,pw-4,2);
-        const au=(it.b[2].split(/\s+/).pop()||'').toUpperCase();x.save();x.translate(px+pw/2,py+16);x.rotate(Math.PI/2);x.fillStyle=fg;x.globalAlpha=.85;x.font='600 9px Inter,sans-serif';x.textBaseline='middle';x.fillText(au.slice(0,12),0,0);x.restore();
-        x.save();x.translate(px+pw/2,H2-18);x.rotate(-Math.PI/2);x.fillStyle=fg;let fs=Math.min(pw*.55,17);const f=fonts[it.st];x.font=f.replace('FS',fs+'px');x.textBaseline='middle';let t=it.b[0];const maxL=ph-62;while(x.measureText(t).width>maxL&&t.length>3)t=t.slice(0,-2);if(t!==it.b[0])t=t.trimEnd()+'…';x.fillText(t,0,0);x.restore();
-      }else{x.fillStyle='rgba(216,180,106,.55)';const b1=py+ph*(.12+it.band*.06);x.fillRect(px+1,b1,pw-2,2);x.fillRect(px+1,b1+5,pw-2,1);x.fillRect(px+1,py+ph*.78,pw-2,2);if(it.band>.5){x.fillStyle='rgba(0,0,0,.25)';x.fillRect(px+3,py+ph*.3,pw-6,ph*.12)}}
-      x.fillStyle='rgba(0,0,0,.35)';x.fillRect(px+pw-1,py,1,ph)}
+  function taken(it){return it.b&&L&&L.api.hasBook(it.b.b?it.b.b[0]:it.b[0])}
+  const T=it=>it.b;
+  function wrapText(x,t,maxW,maxL){const ws=t.split(' ');const ls=[];let c='';for(const w of ws){const tt=(c+' '+w).trim();if(x.measureText(tt).width>maxW&&c){ls.push(c);c=w}else c=tt}if(c)ls.push(c);if(ls.length>maxL){ls.length=maxL;ls[maxL-1]=ls[maxL-1].replace(/\s*\S*$/,'')+'…'}return ls}
+  function drawCover(x,s,px,py,pw,ph){const b=s.b,kind=s.g.kind;const fg=lum(s.c)>.58?'#1d1610':'#f7efe2';
+    if(kind==='manga'){x.fillStyle='#f4f1ea';x.fillRect(px,py,pw,ph);x.fillStyle=s.c;x.fillRect(px,py+ph*.3,pw,ph*.7);x.fillStyle='rgba(0,0,0,.12)';for(let i=0;i<6;i++)x.fillRect(px+i*pw/6,py+ph*.3,1,ph*.7);x.fillStyle='#111';x.font=`700 ${Math.round(pw*.13)}px "Bebas Neue",sans-serif`;x.textAlign='center';wrapText(x,b[0].toUpperCase(),pw-10,2).forEach((l,i)=>x.fillText(l,px+pw/2,py+ph*.13+i*pw*.13));x.fillStyle='#fff';x.font=`600 ${Math.round(pw*.07)}px Inter,sans-serif`;x.fillText(b[2].split(' e ')[0],px+pw/2,py+ph*.93)}
+    else if(kind==='hq'){x.fillStyle=s.c;x.fillRect(px,py,pw,ph);x.fillStyle='rgba(255,255,255,.12)';for(let yy=py+4;yy<py+ph;yy+=6)for(let xx=px+((yy/6)%2?3:0);xx<px+pw;xx+=6){x.beginPath();x.arc(xx,yy,1.3,0,7);x.fill()}x.fillStyle='#ffd23f';x.fillRect(px,py,pw,ph*.22);x.fillStyle='#111';x.font=`700 ${Math.round(pw*.12)}px "Bebas Neue",sans-serif`;x.textAlign='center';wrapText(x,b[0].toUpperCase(),pw-8,2).forEach((l,i)=>x.fillText(l,px+pw/2,py+ph*.11+i*pw*.12));x.fillStyle=fg;x.font=`600 ${Math.round(pw*.065)}px Inter,sans-serif`;x.fillText(b[2].split(' e ')[0],px+pw/2,py+ph*.92)}
+    else{const gr=x.createLinearGradient(px,py,px,py+ph);gr.addColorStop(0,shade(s.c,.12));gr.addColorStop(1,shade(s.c,-.35));x.fillStyle=gr;x.fillRect(px,py,pw,ph);x.strokeStyle='rgba(216,180,106,.85)';x.lineWidth=2;x.strokeRect(px+5,py+5,pw-10,ph-10);
+      x.fillStyle=fg;x.textAlign='center';const f=fonts[s.st];const fs=Math.round(pw*.115);x.font=f.replace('FS',fs+'px');const ls=wrapText(x,b[0],pw-18,4);ls.forEach((l,i)=>x.fillText(l,px+pw/2,py+ph*.28+i*fs*1.15));
+      x.fillStyle='#d8b46a';x.fillRect(px+pw/2-14,py+ph*.28+ls.length*fs*1.15,28,2);x.fillStyle=fg;x.font=`600 ${Math.round(pw*.066)}px Inter,sans-serif`;x.fillText(b[2].length>22?b[2].split(' ').slice(-1)[0]:b[2],px+pw/2,py+ph*.86)}
+    x.fillStyle='rgba(0,0,0,.25)';x.fillRect(px,py,3,ph);x.fillStyle='rgba(255,255,255,.12)';x.fillRect(px+3,py,2,ph)}
+  function drawSpine(x,s,px,py,pw,ph){const b=s.b;const gr=x.createLinearGradient(px,0,px+pw,0);gr.addColorStop(0,shade(s.c,-.45));gr.addColorStop(.2,shade(s.c,.14));gr.addColorStop(.5,s.c);gr.addColorStop(1,shade(s.c,-.5));x.fillStyle=gr;x.fillRect(px,py,pw,ph);
+    const fg=lum(s.c)>.58?'#1d1610':'#f7efe2';const k=s.g.kind==='manga'?'#f4f1ea':'#d8b46a';x.fillStyle=k;x.fillRect(px+2,py+7,pw-4,2);x.fillRect(px+2,py+11,pw-4,1);x.fillRect(px+2,py+ph-13,pw-4,2);
+    const au=(b[2].split(' e ')[0].split(/\s+/).pop()||'').toUpperCase();x.save();x.translate(px+pw/2,py+18);x.rotate(Math.PI/2);x.fillStyle=fg;x.globalAlpha=.85;x.font='600 10px Inter,sans-serif';x.textBaseline='middle';x.textAlign='left';x.fillText(au.slice(0,12),0,0);x.restore();
+    x.save();x.translate(px+pw/2,py+ph-20);x.rotate(-Math.PI/2);x.fillStyle=fg;const fs=Math.min(pw*.5,20);x.font=fonts[s.st].replace('FS',fs+'px');x.textBaseline='middle';x.textAlign='left';let t=b[0];const maxL=ph-70;while(x.measureText(t).width>maxL&&t.length>3)t=t.slice(0,-2);if(t!==b[0])t=t.trimEnd()+'…';x.fillText(t,0,0);x.restore();
+    x.fillStyle='rgba(0,0,0,.35)';x.fillRect(px+pw-1,py,1,ph)}
+  function drawDecor(x,s,px,py,pw,ph){const cx=px+pw/2,by=py+ph;x.save();
+    if(s.dec==='plant'){x.fillStyle='#c4683f';x.fillRect(cx-pw*.22,by-ph*.35,pw*.44,ph*.35);x.fillStyle='#3f8f4a';for(let i=0;i<5;i++){x.beginPath();x.ellipse(cx+(i-2)*pw*.1,by-ph*.55,pw*.07,ph*.28,(i-2)*.35,0,7);x.fill()}}
+    else if(s.dec==='globe'){x.fillStyle='#2f6f9f';x.beginPath();x.arc(cx,by-ph*.6,pw*.28,0,7);x.fill();x.fillStyle='#7cb46b';x.beginPath();x.ellipse(cx-pw*.08,by-ph*.65,pw*.1,pw*.07,.4,0,7);x.fill();x.fillStyle='#8a6428';x.fillRect(cx-2,by-ph*.32,4,ph*.28);x.fillRect(cx-pw*.2,by-6,pw*.4,6)}
+    else if(s.dec==='candle'){x.fillStyle='#f4ede1';x.fillRect(cx-pw*.1,by-ph*.55,pw*.2,ph*.5);x.fillStyle='#ffb347';x.beginPath();x.ellipse(cx,by-ph*.62,pw*.06,ph*.07,0,0,7);x.fill();x.fillStyle='#b08d57';x.fillRect(cx-pw*.2,by-8,pw*.4,8)}
+    else if(s.dec==='cat'){x.fillStyle='#2a2522';x.beginPath();x.ellipse(cx,by-ph*.25,pw*.22,ph*.25,0,0,7);x.fill();x.beginPath();x.arc(cx,by-ph*.6,pw*.15,0,7);x.fill();x.beginPath();x.moveTo(cx-pw*.15,by-ph*.65);x.lineTo(cx-pw*.12,by-ph*.85);x.lineTo(cx-pw*.03,by-ph*.72);x.moveTo(cx+pw*.15,by-ph*.65);x.lineTo(cx+pw*.12,by-ph*.85);x.lineTo(cx+pw*.03,by-ph*.72);x.fill();x.fillStyle='#e9c23f';x.fillRect(cx-pw*.08,by-ph*.62,3,4);x.fillRect(cx+pw*.05,by-ph*.62,3,4)}
+    else if(s.dec==='vase'){x.fillStyle='#2a6f73';x.beginPath();x.moveTo(cx-pw*.12,by-ph*.8);x.quadraticCurveTo(cx-pw*.35,by-ph*.3,cx-pw*.15,by);x.lineTo(cx+pw*.15,by);x.quadraticCurveTo(cx+pw*.35,by-ph*.3,cx+pw*.12,by-ph*.8);x.fill();x.fillStyle='#d8b46a';x.fillRect(cx-pw*.2,by-ph*.45,pw*.4,3)}
+    else{x.fillStyle='#4a3a2a';x.fillRect(cx-pw*.25,by-ph*.7,pw*.12,ph*.7);x.fillRect(cx-pw*.25,by-8,pw*.5,8);x.fillStyle='#d8b46a';x.fillRect(cx-pw*.25,by-ph*.7,pw*.12,4)}
+    x.restore()}
+  function drawRow(row){const c=row.canvas,x=c.getContext('2d'),H2=c.height;x.clearRect(0,0,c.width,H2);
+    for(const s of row.list){if(s.b&&taken(s))continue;const px=s.x*PXM,pw=s.w*PXM,ph=s.h*PXM,py=H2-(s.y0-row.base0)*PXM-ph;
+      if(s.dec)drawDecor(x,s,px,py,pw,ph);else if(s.face)drawCover(x,s,px,py,pw,ph);else drawSpine(x,s,px,py,pw,ph);
+      if(s.b&&s.b[5]){x.save();x.fillStyle='#1fa463';if(s.face){x.translate(px+pw-2,py+2);x.rotate(Math.PI/4);x.fillRect(-30,8,60,14);x.fillStyle='#fff';x.font='700 9px Inter,sans-serif';x.textAlign='center';x.fillText('GRÁTIS',0,18)}else{x.fillRect(px+2,py+ph*.46,pw-4,12)}x.restore()}}
     row.tex.needsUpdate=true;
-    // esconder caixas dos livros que saíram
-    const m=new THREE.Matrix4();row.list.forEach((it,k)=>{if(it.real){row.im.getMatrixAt(k,m);const ps=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();m.decompose(ps,q,sc);sc.set(taken(it)?0.0001:it.w*.985,taken(it)?0.0001:it.h,.24);m.compose(ps,q,sc);row.im.setMatrixAt(k,m)}});row.im.instanceMatrix.needsUpdate=true}
+    const m=new THREE.Matrix4(),ps=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
+    row.list.forEach(s=>{if(!s.b)return;row.im.getMatrixAt(s.k,m);m.decompose(ps,q,sc);const tk=taken(s);const dz=s.face?.03:.24;sc.set(tk?1e-4:s.w*.98,tk?1e-4:s.h,dz);m.compose(ps,q,sc);row.im.setMatrixAt(s.k,m)});row.im.instanceMatrix.needsUpdate=true}
   const refresh=()=>rows.forEach(drawRow);
 
   // --- controles ---
@@ -158,7 +182,8 @@ function build(api){
   const joyEl=el.querySelector('.lbjoy'),knob=joyEl.querySelector('i');
   const ray=new THREE.Raycaster(),v2=new THREE.Vector2();
   function pick(cx,cy){const r=canvas.getBoundingClientRect();v2.set((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(v2,cam);
-    const hits=ray.intersectObjects(rows.filter(x=>x.plane).map(x=>x.plane));for(const h of hits){if(h.distance>5.5){L.api.toast('Chegue mais perto para escolher um livro');return}const row=h.object.userData.row;const lx=h.uv.x*IW,ly=h.uv.y*.44;const it=row.list.find(b=>lx>=b.x&&lx<=b.x+b.w);if(!it)return;if(!it.real){L.api.toast('Volume decorativo — procure os livros com título');return}if(taken(it)){return}if(ly>it.h+.01)return;
+    const hits=ray.intersectObjects(rows.map(x=>x.plane));for(const h of hits){if(h.distance>5.5){L.api.toast('Chegue mais perto para escolher um livro');return}const row=h.object.userData.row;const lx=h.uv.x*IW,ly=row.base0+h.uv.y*row.AH;
+      const it=row.list.find(s=>s.b&&lx>=s.x-.004&&lx<=s.x+s.w+.004&&ly>=s.y0-.01&&ly<=s.y0+s.h+.01);if(!it)return;if(taken(it)){L.api.toast('Esse livro já está na sua estante');return}
       L.api.openCatalog(it.b,it.g,it.c,()=>{drawRow(row)});return}}
   canvas.addEventListener('pointerdown',e=>{hideHint();const r=canvas.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;canvas.setPointerCapture(e.pointerId);
     if(x<r.width*.5&&y>r.height*.4&&!ctl.joy){ctl.joy={id:e.pointerId,x0:e.clientX,y0:e.clientY,dx:0,dy:0,t:performance.now()};joyEl.style.display='block';joyEl.style.left=e.clientX+'px';joyEl.style.top=e.clientY+'px';knob.style.transform='none'}
@@ -171,7 +196,7 @@ function build(api){
   addEventListener('keydown',e=>{if(el.classList.contains('open'))ctl.keys[e.key.toLowerCase()]=1});addEventListener('keyup',e=>{ctl.keys[e.key.toLowerCase()]=0});
   let hintT=setTimeout(hideHint,9000);function hideHint(){clearTimeout(hintT);const h=el.querySelector('#lbHint');if(h)h.style.opacity=0}
 
-  function flyTo(gi){const cs=cases[gi];if(!cs)return;const tx=-cs.side*.15,tz=cs.zc;const tyaw=cs.side<0?Math.PI/2:-Math.PI/2;
+  function flyTo(gi){const cs=cases[gi];if(!cs)return;const tx=cs.side*.35,tz=cs.zc;const tyaw=cs.side<0?Math.PI/2:-Math.PI/2;
     ctl.fly={from:ctl.pos.clone(),to:new THREE.Vector3(tx,1.62,tz),yaw0:ctl.yaw,yaw1:ctl.yaw+((((tyaw-ctl.yaw)%(2*Math.PI))+3*Math.PI)%(2*Math.PI)-Math.PI),p0:ctl.pitch,t:0}}
 
   // --- menu de gêneros e busca ---
@@ -179,12 +204,12 @@ function build(api){
   const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function renderMenu(){const s=norm(q.value.trim());
-    if(!s){gl.innerHTML=GENRES.map((g,i)=>`<button data-g="${i}" style="--g:${g.c}">${esc(g.n)}<small>${g.books.filter(b=>!L.api.hasBook(b[0])).length} livros</small></button>`).join('')+`<button class="bk" data-close="1">Continuar andando</button>`;return}
+    if(!s){gl.innerHTML=GENRES.map((g,i)=>`<button data-g="${i}" style="--g:${g.c}">${esc(g.n)}<small>${g.books.filter(b=>!L.api.hasBook(b[0])).length} livros${g.kind==='free'?' · grátis':''}</small></button>`).join('')+`<button class="bk" data-close="1">Continuar andando</button>`;return}
     const hits=[];GENRES.forEach((g,gi)=>g.books.forEach(b=>{if(norm(b[0]+' '+b[1]+' '+b[2]).includes(s))hits.push({g,gi,b})}));
     gl.innerHTML=hits.length?hits.slice(0,40).map(h=>`<button data-g="${h.gi}" data-b="${esc(h.b[0])}" style="--g:${h.g.c}">${esc(h.b[0])}<small>${esc(h.b[2])} · ${esc(h.g.n)}${L.api.hasBook(h.b[0])?' · já na sua estante':''}</small></button>`).join(''):`<p style="grid-column:1/-1;color:#b8a68c">Nenhum livro com esse nome na biblioteca.</p>`}
   el.querySelector('#lbMenu').onclick=()=>{q.value='';renderMenu();menu.classList.add('open')};
   menu.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){if(e.target===menu)menu.classList.remove('open');return}menu.classList.remove('open');if(b.dataset.close)return;const gi=+b.dataset.g;flyTo(gi);
-    if(b.dataset.b){const g=GENRES[gi];const bk=g.books.find(x=>x[0]===b.dataset.b);if(bk&&!L.api.hasBook(bk[0])){const row=rows.find(r=>r.list.some(it=>it.real&&it.b===bk));const it=row&&row.list.find(x=>x.b===bk);setTimeout(()=>L.api.openCatalog(bk,g,it?it.c:g.c,()=>row&&drawRow(row)),1300)}}});
+    if(b.dataset.b){const g=GENRES[gi];const bk=g.books.find(x=>x[0]===b.dataset.b);if(bk&&!L.api.hasBook(bk[0])){const row=rows.find(r=>r.list.some(it=>it.b===bk));const it=row&&row.list.find(x=>x.b===bk);setTimeout(()=>L.api.openCatalog(bk,g,it?it.c:g.c,()=>row&&drawRow(row)),1300)}}});
   q.addEventListener('input',renderMenu);
   el.querySelector('#lbBack').onclick=()=>{L.stop();el.classList.remove('open');L.api.onClose&&L.api.onClose()};
 
@@ -195,10 +220,10 @@ function build(api){
   function frame(now){if(!running)return;const dt=Math.min(.05,(now-last)/1000);last=now;ctl.t+=dt;
     let mf=0,ms=0;if(ctl.joy){mf=-ctl.joy.dy/55;ms=ctl.joy.dx/55}if(ctl.keys.w||ctl.keys.arrowup)mf=1;if(ctl.keys.s||ctl.keys.arrowdown)mf=-1;if(ctl.keys.a)ms=-1;if(ctl.keys.d)ms=1;if(ctl.keys.arrowleft)ctl.yaw+=dt*1.6;if(ctl.keys.arrowright)ctl.yaw-=dt*1.6;
     if(mf||ms){ctl.fly=null;const sp=2.3*dt;const sy=Math.sin(ctl.yaw),cy=Math.cos(ctl.yaw);ctl.pos.x+=(-sy*mf+cy*ms)*sp;ctl.pos.z+=(-cy*mf-sy*ms)*sp}
-    if(ctl.fly){const f=ctl.fly;f.t=Math.min(1,f.t+dt/1.3);const e=f.t<.5?2*f.t*f.t:1-Math.pow(-2*f.t+2,2)/2;ctl.pos.lerpVectors(f.from,f.to,e);ctl.yaw=f.yaw0+(f.yaw1-f.yaw0)*e;ctl.pitch=f.p0+(.1-f.p0)*e;if(f.t>=1)ctl.fly=null}
+    if(ctl.fly){const f=ctl.fly;f.t=Math.min(1,f.t+dt/1.3);const e=f.t<.5?2*f.t*f.t:1-Math.pow(-2*f.t+2,2)/2;ctl.pos.lerpVectors(f.from,f.to,e);ctl.yaw=f.yaw0+(f.yaw1-f.yaw0)*e;ctl.pitch=f.p0+(.06-f.p0)*e;if(f.t>=1)ctl.fly=null}
     ctl.pos.x=Math.max(-1.55,Math.min(1.55,ctl.pos.x));ctl.pos.z=Math.max(zEnd+.4,Math.min(3,ctl.pos.z));
     const bob=(mf||ms)?Math.sin(ctl.t*9)*.018:0;cam.position.set(ctl.pos.x,1.62+bob,ctl.pos.z);cam.rotation.set(ctl.pitch,ctl.yaw,0);
     renderer.render(scene,cam);raf=requestAnimationFrame(frame)}
-  L={el,api,refresh,flyTo,start(){if(running)return;running=true;resize();last=performance.now();raf=requestAnimationFrame(frame)},stop(){running=false;cancelAnimationFrame(raf)}};
+  L={el,api,refresh,flyTo,start(){if(running)return;running=true;resize();last=performance.now();raf=requestAnimationFrame(frame)},stop(){running=false;cancelAnimationFrame(raf)}};window.__lib=L;
   refresh();L.start();setTimeout(()=>{const ld=el.querySelector('#lbLoad');if(ld){ld.style.opacity=0;setTimeout(()=>ld.remove(),700)}},300);
 }
