@@ -43,7 +43,7 @@ let STYLED=false;
 export async function openLibrary(api){
   const ac=await loadAcervo();const ekey=ac?ac.key:'';
   if(L&&L.ekey!==ekey){L.stop();L.el.remove();L=null}
-  if(L){L.api=api;L.el.classList.add('open');L.refresh();L.start();return}
+  if(L){L.api=api;L.el.classList.add('open');L.refresh();L.start();L.loadCovers&&L.loadCovers();return}
   if(!STYLED){const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);STYLED=true}
   const SECS=mergeSections(GENRES,ac);
   const fl=['400 20px "DM Serif Display"','400 20px "Bebas Neue"','600 20px Oswald','italic 700 20px "Playfair Display"','700 20px "Cormorant SC"','700 20px "Josefin Sans"','600 9px Inter','600 26px Inter'];
@@ -140,9 +140,9 @@ function build(api,GENRES,ekey){
     const items=[];
     for(let r=0;r<NR;r++){const y0=base+r*RH+.015;const row=per[NR-1-r];
       // cada fileira: até 2 capas de frente + lombadas + 1 enfeite
-      let nf=Math.min(2,Math.max(1,Math.round(row.length*.45)));
+      let nf=Math.min(3,row.length<=2?row.length:Math.max(2,Math.round(row.length*.65)));
       const kinds=row.map((_,k)=>k<nf?'f':'s');for(let k=kinds.length-1;k>0;k--){const j=Math.floor(R()*(k+1));[kinds[k],kinds[j]]=[kinds[j],kinds[k]]}
-      let wsum=0;const sized=row.map((it,k)=>{const f=kinds[k]==='f';const w=f?.205+R()*.03:.068+R()*.028;const h=f?Math.min(RH-.07,.29+R()*.04):Math.min(RH-.05,.3+R()*.12);wsum+=w;return Object.assign(it,{face:f,w,h})});
+      let wsum=0;const sized=row.map((it,k)=>{const f=kinds[k]==='f';const w=f?.2+R()*.02:.068+R()*.028;const h=f?Math.min(RH-.07,.29+R()*.04):Math.min(RH-.05,.3+R()*.12);wsum+=w;return Object.assign(it,{face:f,w,h})});
       let free=IW-.02-wsum-.006*row.length;const dec=free>.13?{dec:DEC[(R()*DEC.length)|0],w:Math.min(.2,free*.5),h:.2}:null;
       const seq=sized.slice();if(dec)seq.splice((R()*(seq.length+1))|0,0,dec);
       const used=seq.reduce((a,s)=>a+s.w,0)+.006*seq.length;let gapEach=Math.max(0,(IW-.02-used)/(seq.length+1));gapEach=Math.min(gapEach,.06);
@@ -165,7 +165,7 @@ function build(api,GENRES,ekey){
   const T=it=>it.b;
   function wrapText(x,t,maxW,maxL){const ws=t.split(' ');const ls=[];let c='';for(const w of ws){const tt=(c+' '+w).trim();if(x.measureText(tt).width>maxW&&c){ls.push(c);c=w}else c=tt}if(c)ls.push(c);if(ls.length>maxL){ls.length=maxL;ls[maxL-1]=ls[maxL-1].replace(/\s*\S*$/,'')+'…'}return ls}
   function drawCover(x,s,px,py,pw,ph){const b=s.b,kind=s.g.kind;const fg=lum(s.c)>.58?'#1d1610':'#f7efe2';
-    const im=b[5]&&typeof b[5]==='object'&&b[5].cover&&s.g.imgs&&s.g.imgs[b[5].cover];
+    const im=s.img||(b[5]&&typeof b[5]==='object'&&b[5].cover&&s.g.imgs&&s.g.imgs[b[5].cover]);
     if(im){const r=Math.max(pw/im.width,ph/im.height);const sw=pw/r,sh=ph/r;x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,px,py,pw,ph);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(px,py,3,ph);return}
     if(kind==='manga'){x.fillStyle='#f4f1ea';x.fillRect(px,py,pw,ph);x.fillStyle=s.c;x.fillRect(px,py+ph*.3,pw,ph*.7);x.fillStyle='rgba(0,0,0,.12)';for(let i=0;i<6;i++)x.fillRect(px+i*pw/6,py+ph*.3,1,ph*.7);x.fillStyle='#111';x.font=`700 ${Math.round(pw*.13)}px "Bebas Neue",sans-serif`;x.textAlign='center';wrapText(x,b[0].toUpperCase(),pw-10,2).forEach((l,i)=>x.fillText(l,px+pw/2,py+ph*.13+i*pw*.13));x.fillStyle='#fff';x.font=`600 ${Math.round(pw*.07)}px Inter,sans-serif`;x.fillText(b[2].split(' e ')[0],px+pw/2,py+ph*.93)}
     else if(kind==='hq'){x.fillStyle=s.c;x.fillRect(px,py,pw,ph);x.fillStyle='rgba(255,255,255,.12)';for(let yy=py+4;yy<py+ph;yy+=6)for(let xx=px+((yy/6)%2?3:0);xx<px+pw;xx+=6){x.beginPath();x.arc(xx,yy,1.3,0,7);x.fill()}x.fillStyle='#ffd23f';x.fillRect(px,py,pw,ph*.22);x.fillStyle='#111';x.font=`700 ${Math.round(pw*.12)}px "Bebas Neue",sans-serif`;x.textAlign='center';wrapText(x,b[0].toUpperCase(),pw-8,2).forEach((l,i)=>x.fillText(l,px+pw/2,py+ph*.11+i*pw*.12));x.fillStyle=fg;x.font=`600 ${Math.round(pw*.065)}px Inter,sans-serif`;x.fillText(b[2].split(' e ')[0],px+pw/2,py+ph*.92)}
@@ -194,6 +194,12 @@ function build(api,GENRES,ekey){
     const m=new THREE.Matrix4(),ps=new THREE.Vector3(),q=new THREE.Quaternion(),sc=new THREE.Vector3();
     row.list.forEach(s=>{if(!s.b)return;row.im.getMatrixAt(s.k,m);m.decompose(ps,q,sc);const tk=taken(s);const dz=s.face?.03:.24;sc.set(tk?1e-4:s.w*.98,tk?1e-4:s.h,dz);m.compose(ps,q,sc);row.im.setMatrixAt(s.k,m)});row.im.instanceMatrix.needsUpdate=true}
   const refresh=()=>rows.forEach(drawRow);
+  // capas reais (Open Library via proxy com CORS) para os livros de frente
+  function loadCovers(){const q=[];for(const row of rows)for(const s of row.list)if(s.face&&s.b&&(s.b[6]||typeof s.b[5]==='string')&&!s.img&&!s.imgTry)q.push([row,s]);let i=0,act=0;const pend=new Set();let t=null;
+    const flush=()=>{t=null;for(const r of pend)drawRow(r);pend.clear()};
+    const next=()=>{while(act<6&&i<q.length){const [row,s]=q[i++];s.imgTry=1;act++;const im=new Image();im.crossOrigin='anonymous';im.decoding='async';
+      im.onload=()=>{act--;if(im.naturalWidth>40){s.img=im;pend.add(row);if(!t)t=setTimeout(flush,250)}next()};im.onerror=()=>{act--;next()};
+      im.src=typeof s.b[5]==='string'?'free/'+s.b[5]+'.jpg':'https://wsrv.nl/?url=covers.openlibrary.org/b/id/'+s.b[6]+'-M.jpg&w=260&h=390&fit=cover&output=jpg&q=82'}};next()}
 
   // --- controles ---
   const ctl={yaw:0,pitch:-.04,pos:new THREE.Vector3(0,1.62,2.4),joy:null,look:null,keys:{},fly:null,t:0};
@@ -242,6 +248,6 @@ function build(api,GENRES,ekey){
     ctl.pos.x=Math.max(-1.55,Math.min(1.55,ctl.pos.x));ctl.pos.z=Math.max(zEnd+.4,Math.min(3,ctl.pos.z));
     const bob=(mf||ms)?Math.sin(ctl.t*9)*.018:0;cam.position.set(ctl.pos.x,1.62+bob,ctl.pos.z);cam.rotation.set(ctl.pitch,ctl.yaw,0);
     renderer.render(scene,cam);raf=requestAnimationFrame(frame)}
-  L={el,api,ekey,refresh,flyTo,start(){if(running)return;running=true;resize();last=performance.now();raf=requestAnimationFrame(frame)},stop(){running=false;cancelAnimationFrame(raf)}};window.__lib=L;
-  refresh();L.start();setTimeout(()=>{const ld=el.querySelector('#lbLoad');if(ld){ld.style.opacity=0;setTimeout(()=>ld.remove(),700)}},300);
+  L={el,api,ekey,refresh,flyTo,loadCovers:()=>loadCovers(),start(){if(running)return;running=true;resize();last=performance.now();raf=requestAnimationFrame(frame)},stop(){running=false;cancelAnimationFrame(raf)}};window.__lib=L;
+  refresh();L.start();setTimeout(loadCovers,600);setTimeout(()=>{const ld=el.querySelector('#lbLoad');if(ld){ld.style.opacity=0;setTimeout(()=>ld.remove(),700)}},300);
 }

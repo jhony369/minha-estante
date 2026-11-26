@@ -993,7 +993,7 @@ $('#fa').addEventListener('change',async e=>{const f=e.target.files[0];e.target.
   if(!b.cover&&m.cover){b.cover=await putBlob(m.cover,'image/jpeg');b.pal=0}
   save();render();toast('Pronto! Abrindo o livro…');openBook(b.id)}catch(err){console.warn(err);toast('Não consegui ler esse arquivo.')}});
 window.EstanteAPI={hasBook,toast,onClose:()=>{document.body.style.overflow='';render()},
- openCatalog:(row,g,color,onAdded)=>{const book={free:row[5]||null,id:'cat-'+hash(row[1]+row[2]),title:row[0],orig:row[1],author:row[2],year:row[3],syn:row[4],genre:g.n,cover:row[5]?(typeof row[5]==='object'?(row[5].cover?'u:'+row[5].cover:null):'u:free/'+row[5]+'.jpg'):null,emp:row[5]&&typeof row[5]==='object'?1:0,color,accent:'#d8b46a',fmt:null,pct:0,rating:0,words:0,pages:0};open3D(null,{book,g,onAdded})}};
+ openCatalog:(row,g,color,onAdded)=>{const book={free:row[5]||null,id:'cat-'+hash(row[1]+row[2]),title:row[0],orig:row[1],author:row[2],year:row[3],syn:row[4],genre:g.n,cover:row[5]?(typeof row[5]==='object'?(row[5].cover?'u:'+row[5].cover:null):'u:free/'+row[5]+'.jpg'):row[6]?'u:https://covers.openlibrary.org/b/id/'+row[6]+'-L.jpg':null,emp:row[5]&&typeof row[5]==='object'?1:0,color,accent:'#d8b46a',fmt:null,pct:0,rating:0,words:0,pages:0};open3D(null,{book,g,onAdded})}};
 $('#libBtn').onclick=async()=>{toast('Abrindo a biblioteca…',2500);document.body.style.overflow='hidden';try{const m=await import('./library.js');await m.openLibrary(window.EstanteAPI)}catch(e){console.warn(e);document.body.style.overflow='';toast(navigator.onLine?'Não consegui abrir a biblioteca.':'Abra o app uma vez com internet para baixar a biblioteca.')}};
 
 /* ---- livros grátis (domínio público) e quadrinhos CBZ ---- */
