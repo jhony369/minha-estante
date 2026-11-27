@@ -33,10 +33,11 @@ const BOOKRE=/\.(pdf|epub|txt|cbz|zip)$/i;
 function cleanName(n){return n.replace(BOOKRE,'').replace(/[_]+/g,' ').replace(/\s*[\(\[](z-?lib[^\)\]]*|pdf|epub)[\)\]]\s*/ig,' ').replace(/\s+/g,' ').trim()||n}
 async function driveList(cfg){const out=[];const K=encodeURIComponent(cfg.chave);
   async function ls(folder,genre,depth){let tok='';do{const q=encodeURIComponent("'"+folder+"' in parents and trashed=false");
-    const u='https://www.googleapis.com/drive/v3/files?q='+q+'&key='+K+'&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,thumbnailLink,size,description)'+(tok?'&pageToken='+tok:'');
+    const u='https://www.googleapis.com/drive/v3/files?q='+q+'&key='+K+'&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=nextPageToken,files(id,name,mimeType,thumbnailLink,size,description,shortcutDetails(targetId,targetMimeType))'+(tok?'&pageToken='+tok:'');
     const j=await getJSON(u,15000);if(!j||!j.files)throw new Error('drive');
-    for(const f of j.files){if(f.mimeType==='application/vnd.google-apps.folder'){if(depth<3)await ls(f.id,depth===0?f.name:genre,depth+1);continue}
-      if(f.mimeType==='application/vnd.google-apps.shortcut'||!BOOKRE.test(f.name))continue;
+    for(const f0 of j.files){let f=f0;const sc=f.shortcutDetails;if(f.mimeType==='application/vnd.google-apps.shortcut'){if(!sc)continue;f=Object.assign({},f,{id:sc.targetId,mimeType:sc.targetMimeType})}
+      if(f.mimeType==='application/vnd.google-apps.folder'){if(depth<3)await ls(f.id,depth===0?f.name:genre,depth+1);continue}
+      if(!BOOKRE.test(f.name))continue;
       out.push({titulo:cleanName(f.name),arquivo:'https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media&key='+K,formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:f.thumbnailLink?f.thumbnailLink.replace(/=s\d+$/,'=s400'):null,genero:genre||cfg.generoRaiz||'Acervo',descricao:f.description||'',autor:''})}
     tok=j.nextPageToken||''}while(tok)}
   await ls(cfg.pasta,'',0);return out}
