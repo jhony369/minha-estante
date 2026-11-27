@@ -29,6 +29,7 @@ const CSS=`
 
 const nrm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 async function getJSON(u,ms){const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),ms||4000);try{const r=await fetch(u,{cache:'no-cache',signal:ctl.signal});return r.ok?await r.json():null}catch(e){return null}finally{clearTimeout(t)}}
+const WS=u=>'https://wsrv.nl/?url='+encodeURIComponent(u)+'&w=400&h=600&fit=cover&output=jpg&q=82';
 const BOOKRE=/\.(pdf|epub|txt|cbz|zip)$/i;
 function cleanName(n){return n.replace(BOOKRE,'').replace(/[_]+/g,' ').replace(/\s*[\(\[](z-?lib[^\)\]]*|pdf|epub)[\)\]]\s*/ig,' ').replace(/\s+/g,' ').trim()||n}
 async function driveList(cfg){const out=[];const K=encodeURIComponent(cfg.chave);
@@ -38,14 +39,27 @@ async function driveList(cfg){const out=[];const K=encodeURIComponent(cfg.chave)
     for(const f0 of j.files){let f=f0;const sc=f.shortcutDetails;if(f.mimeType==='application/vnd.google-apps.shortcut'){if(!sc)continue;f=Object.assign({},f,{id:sc.targetId,mimeType:sc.targetMimeType})}
       if(f.mimeType==='application/vnd.google-apps.folder'){if(depth<3)await ls(f.id,depth===0?f.name:genre,depth+1);continue}
       if(!BOOKRE.test(f.name))continue;
-      out.push({titulo:cleanName(f.name),arquivo:'https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media&key='+K,formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:f.thumbnailLink?f.thumbnailLink.replace(/=s\d+$/,'=s400'):null,genero:genre||cfg.generoRaiz||'Acervo',descricao:f.description||'',autor:''})}
+      out.push({titulo:cleanName(f.name),arquivo:'https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media&key='+K,formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:f.thumbnailLink?WS(f.thumbnailLink.replace(/^https?:\/\//,'').replace(/=s\d+$/,'=s400')):null,genero:genre||cfg.generoRaiz||'Acervo',descricao:f.description||'',autor:''})}
     tok=j.nextPageToken||''}while(tok)}
   await ls(cfg.pasta,'',0);return out}
 async function loadDrive(){const cfg=await getJSON('acervo/drive.json');if(!cfg||!cfg.pasta||!cfg.chave)return [];
   try{const l=await driveList(cfg);try{localStorage.setItem('estante.drive',JSON.stringify(l))}catch(e){}return l}
   catch(e){try{return JSON.parse(localStorage.getItem('estante.drive')||'[]')}catch(_){return []}}}
-async function loadAcervo(){try{const [j,dv]=await Promise.all([getJSON('acervo/catalogo.json'),loadDrive()]);
-  const ls=((j&&j.livros)||[]).concat(dv).filter(l=>l&&l.titulo&&l.arquivo&&l.genero);if(!ls.length)return null;
+const strip=h=>String(h||'').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
+const one=v=>Array.isArray(v)?v[0]:v;
+async function iaItem(id,genre){const j=await getJSON('https://archive.org/metadata/'+encodeURIComponent(id),15000);if(!j||!j.files)throw new Error('ia');const md=j.metadata||{};
+  const fs=j.files.filter(f=>f.source==='original'&&BOOKRE.test(f.name)&&!/(_text\.pdf|_bw\.pdf)$/i.test(f.name));
+  const g=genre||one(md.subject)||(fs.length>1?one(md.title):'')||'Acervo';const base='https://archive.org/download/'+encodeURIComponent(id)+'/';
+  return fs.map(f=>({titulo:fs.length===1&&md.title?String(one(md.title)):cleanName(f.name.split('/').pop()),autor:fs.length===1?String(one(md.creator)||''):'',ano:parseInt(one(md.date))||0,descricao:fs.length===1?strip(one(md.description)).slice(0,1500):'',
+    arquivo:base+f.name.split('/').map(encodeURIComponent).join('/'),formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:fs.length===1?WS('archive.org/services/img/'+encodeURIComponent(id)):null,genero:String(g).slice(0,40)}))}
+async function loadArchive(){const cfg=await getJSON('acervo/archive.json');if(!cfg)return [];const nid=v=>String(v).trim().replace(/^.*\/(details|download)\//,'').replace(/[\/?#].*$/,'');const its=(cfg.itens||[]).map(x=>typeof x==='string'?{id:nid(x)}:Object.assign({},x,{id:nid(x.id)}));
+  try{if(cfg.busca){const u='https://archive.org/advancedsearch.php?q='+encodeURIComponent(cfg.busca)+'&fl[]=identifier&rows=2000&output=json';const j=await getJSON(u,15000);
+      for(const d of ((j&&j.response&&j.response.docs)||[]))if(!its.some(x=>x.id===d.identifier))its.push({id:d.identifier})}
+    if(!its.length)return [];const out=[];for(let i=0;i<its.length;i+=8){const r=await Promise.all(its.slice(i,i+8).map(x=>iaItem(x.id,x.genero).catch(()=>[])));r.forEach(a=>out.push(...a))}
+    try{localStorage.setItem('estante.ia',JSON.stringify(out))}catch(e){}return out}
+  catch(e){try{return JSON.parse(localStorage.getItem('estante.ia')||'[]')}catch(_){return []}}}
+async function loadAcervo(){try{const [j,dv,ia]=await Promise.all([getJSON('acervo/catalogo.json'),loadDrive(),loadArchive()]);
+  const ls=((j&&j.livros)||[]).concat(dv,ia).filter(l=>l&&l.titulo&&l.arquivo&&l.genero);if(!ls.length)return null;
   const imgs={};await Promise.all(ls.filter(l=>l.capa).slice(0,120).map(l=>new Promise(res=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{imgs[l.capa]=im;res()};im.onerror=res;im.src=l.capa;setTimeout(res,5000)})));
   const row=l=>[String(l.titulo).slice(0,120),String(l.titulo).slice(0,120),String(l.autor||'').slice(0,80)||'—',+l.ano||new Date(l.data||Date.now()).getFullYear(),String(l.descricao||'').slice(0,1500)||(l.formato==='zip'?'Livro do acervo público. Toque em “Ler agora” para baixar e começar a ler.':'Sem descrição.'),{u:l.arquivo,fmt:l.formato||'pdf',cover:l.capa||null,own:1}];
   const groups=new Map();for(const l of ls){const k=nrm(l.genero);if(!groups.has(k))groups.set(k,{n:String(l.genero).slice(0,40),list:[]});groups.get(k).list.push(l)}
