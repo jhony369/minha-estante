@@ -49,9 +49,9 @@ const strip=h=>String(h||'').replace(/<br\s*\/?>/gi,'\n').replace(/<[^>]+>/g,'')
 const one=v=>Array.isArray(v)?v[0]:v;
 async function iaItem(id,genre){const j=await getJSON('https://archive.org/metadata/'+encodeURIComponent(id),15000);if(!j||!j.files)throw new Error('ia');const md=j.metadata||{};
   const fs=j.files.filter(f=>f.source==='original'&&BOOKRE.test(f.name)&&!/(_text\.pdf|_bw\.pdf)$/i.test(f.name));
-  const g=genre||one(md.subject)||(fs.length>1?one(md.title):'')||'Acervo';const base='https://archive.org/download/'+encodeURIComponent(id)+'/';
+  const hasImg=j.files.some(f=>f.source==='original'&&(/\.(jpe?g|png|webp)$/i.test(f.name)||/\.pdf$/i.test(f.name)));const g=genre||one(md.subject)||(fs.length>1?one(md.title):'')||'Acervo';const base='https://archive.org/download/'+encodeURIComponent(id)+'/';
   return fs.map(f=>({titulo:fs.length===1&&md.title?String(one(md.title)):cleanName(f.name.split('/').pop()),autor:fs.length===1?String(one(md.creator)||''):'',ano:parseInt(one(md.date))||0,descricao:fs.length===1?strip(one(md.description)).slice(0,1500):'',
-    arquivo:base+f.name.split('/').map(encodeURIComponent).join('/'),formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:fs.length===1?WS('archive.org/services/img/'+encodeURIComponent(id)):null,genero:String(g).slice(0,40)}))}
+    arquivo:base+f.name.split('/').map(encodeURIComponent).join('/'),formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:fs.length===1&&hasImg?WS('archive.org/services/img/'+encodeURIComponent(id)):null,genero:String(g).slice(0,40)}))}
 async function loadArchive(){const cfg=await getJSON('acervo/archive.json');if(!cfg)return [];const nid=v=>String(v).trim().replace(/^.*\/(details|download)\//,'').replace(/[\/?#].*$/,'');const its=(cfg.itens||[]).map(x=>typeof x==='string'?{id:nid(x)}:Object.assign({},x,{id:nid(x.id)}));
   try{if(cfg.busca){const u='https://archive.org/advancedsearch.php?q='+encodeURIComponent(cfg.busca)+'&fl[]=identifier&rows=2000&output=json';const j=await getJSON(u,15000);
       for(const d of ((j&&j.response&&j.response.docs)||[]))if(!its.some(x=>x.id===d.identifier))its.push({id:d.identifier})}
