@@ -997,11 +997,24 @@ window.EstanteAPI={hasBook,toast,onClose:()=>{document.body.style.overflow='';re
 $('#libBtn').onclick=async()=>{toast('Abrindo a biblioteca…',2500);document.body.style.overflow='hidden';try{const m=await import('./library.js');await m.openLibrary(window.EstanteAPI)}catch(e){console.warn(e);document.body.style.overflow='';toast(navigator.onLine?'Não consegui abrir a biblioteca.':'Abra o app uma vez com internet para baixar a biblioteca.')}};
 
 /* ---- livros grátis (domínio público) e quadrinhos CBZ ---- */
+async function fetchProgress(url,onP){const r=await fetch(url);if(!r.ok)throw new Error('net '+r.status);const tot=+r.headers.get('content-length')||0;
+ if(!r.body||!tot)return await r.blob();const rd=r.body.getReader(),parts=[];let got=0,lastP=-1;
+ for(;;){const {done,value}=await rd.read();if(done)break;parts.push(value);got+=value.length;const p=Math.floor(got*100/tot);if(p!==lastP&&p%5===0){lastP=p;onP(p)}}
+ return new Blob(parts,{type:r.headers.get('content-type')||''})}
+async function unzipBook(blob){await loadZip();const zip=await JSZip.loadAsync(blob);
+ if(zip.file('mimetype')&&zip.file('META-INF/container.xml'))return {blob,fmt:'epub'};
+ const ok=n=>!zip.files[n].dir&&!/__MACOSX|(^|\/)\./.test(n);const names=Object.keys(zip.files).filter(ok);
+ const books=names.filter(n=>/\.(epub|pdf|cbz|txt)$/i.test(n)).sort((a,b)=>(zip.files[b]._data&&zip.files[b]._data.uncompressedSize||0)-(zip.files[a]._data&&zip.files[a]._data.uncompressedSize||0));
+ const pref=books.find(n=>/\.epub$/i.test(n))||books.find(n=>/\.pdf$/i.test(n))||books[0];
+ if(pref){const ext=pref.split('.').pop().toLowerCase();return {blob:await zip.file(pref).async('blob'),fmt:ext}}
+ if(names.some(n=>imgRe.test(n)))return {blob,fmt:'cbz'};
+ throw new Error('zip-vazio')}
 async function readFree(){const cat=V3.cat;if(!cat)return;const b=cat.book;let own=Object.values(S.books).find(x=>norm(x.title)===norm(b.title));
  if(own&&own.file){close3D();closeLib();openBook(own.id);return}
- const F=b.free,isO=typeof F==='object',url=isO?F.u:'free/'+F+'.epub',fmt=isO?(F.fmt||'pdf'):'epub';
- toast('Preparando o livro…',30000);
- try{const r=await fetch(url);if(!r.ok)throw new Error('net');const blob=await r.blob();
+ const F=b.free,isO=typeof F==='object',url=isO?F.u:'free/'+F+'.epub';let fmt=isO?(F.fmt||'pdf'):'epub';
+ toast('Preparando o livro…',600000);
+ try{let blob=await fetchProgress(url,p=>toast('Baixando o livro… '+p+'%',600000));
+  if(fmt==='zip'){toast('Abrindo o arquivo…',600000);const r2=await unzipBook(blob);blob=r2.blob;fmt=r2.fmt}
   const m=fmt==='epub'?await epubMeta(blob):fmt==='pdf'?await pdfMeta(blob):fmt==='cbz'?await cbzMeta(blob):{words:countWords(await readTxt(blob))};
   const file=await putBlob(blob,{epub:'application/epub+zip',pdf:'application/pdf',txt:'text/plain',cbz:'application/zip'}[fmt]);let cover=null,color=null,accent=null;
   let cvBlob=m.cover;if(isO&&F.cover){try{const rc=await fetch(F.cover);if(rc.ok)cvBlob=await shrink(await rc.blob())}catch(e){}}
@@ -1010,7 +1023,7 @@ async function readFree(){const cat=V3.cat;if(!cat)return;const b=cat.book;let o
   if(own){Object.assign(own,extra);if(cover&&!own.cover){own.cover=cover;own.color=color||own.color;own.accent=accent||own.accent}}
   else{const id='b'+uid();own=S.books[id]=Object.assign({id,title:b.title,author:b.author,orig:b.orig,year:b.year,syn:b.syn,genre:cat.g.n,coll:isO?cat.g.n:'Domínio público',series:'',cover,ccover:1,color:color||b.color,accent:accent||'#d8b46a',pal:2,status:'quero',added:Date.now(),rating:0,opened:0,hq:1,fav:false,notes:[]},extra);S.order.splice(firstBookIndex(),0,id)}
   save();render();cat.onAdded&&cat.onAdded();close3D();closeLib();toast('Boa leitura! “'+b.title+'” está na sua estante.',3000);openBook(own.id)}
- catch(e){console.warn(e);toast(navigator.onLine?'Não consegui abrir este livro agora.':'Para baixar este livro pela primeira vez, conecte-se à internet.')}}
+ catch(e){console.warn(e);toast(!navigator.onLine?'Para baixar este livro pela primeira vez, conecte-se à internet.':String(e.message)==='zip-vazio'?'Este arquivo zip não tem um livro (PDF, EPUB, TXT ou CBZ) dentro.':/net 40[34]/.test(e.message)?'O livro não está público no Drive. Confira o compartilhamento da pasta.':'O download falhou. Tente de novo em instantes.',5000)}}
 function closeLib(){const l=document.getElementById('lib');if(l&&l.classList.contains('open')){l.querySelector('#lbBack').click()}}
 const imgRe=/\.(jpe?g|png|gif|webp|avif|bmp)$/i;
 const natCmp=(a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'});

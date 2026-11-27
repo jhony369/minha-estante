@@ -28,10 +28,25 @@ const CSS=`
 `;
 
 const nrm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
-async function loadAcervo(){try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),4000);const r=await fetch('acervo/catalogo.json',{cache:'no-cache',signal:ctl.signal});clearTimeout(t);if(!r.ok)return null;const j=await r.json();
-  const ls=(j.livros||[]).filter(l=>l&&l.titulo&&l.arquivo&&l.genero);if(!ls.length)return null;
-  const imgs={};await Promise.all(ls.filter(l=>l.capa).map(l=>new Promise(res=>{const im=new Image();im.onload=()=>{imgs[l.capa]=im;res()};im.onerror=res;im.src=l.capa;setTimeout(res,5000)})));
-  const row=l=>[String(l.titulo).slice(0,120),String(l.titulo).slice(0,120),String(l.autor||'').slice(0,80)||'—',+l.ano||new Date(l.data||Date.now()).getFullYear(),String(l.descricao||'').slice(0,1500)||'Sem descrição.',{u:l.arquivo,fmt:l.formato||'pdf',cover:l.capa||null,own:1}];
+async function getJSON(u,ms){const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),ms||4000);try{const r=await fetch(u,{cache:'no-cache',signal:ctl.signal});return r.ok?await r.json():null}catch(e){return null}finally{clearTimeout(t)}}
+const BOOKRE=/\.(pdf|epub|txt|cbz|zip)$/i;
+function cleanName(n){return n.replace(BOOKRE,'').replace(/[_]+/g,' ').replace(/\s*[\(\[](z-?lib[^\)\]]*|pdf|epub)[\)\]]\s*/ig,' ').replace(/\s+/g,' ').trim()||n}
+async function driveList(cfg){const out=[];const K=encodeURIComponent(cfg.chave);
+  async function ls(folder,genre,depth){let tok='';do{const q=encodeURIComponent("'"+folder+"' in parents and trashed=false");
+    const u='https://www.googleapis.com/drive/v3/files?q='+q+'&key='+K+'&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,thumbnailLink,size,description)'+(tok?'&pageToken='+tok:'');
+    const j=await getJSON(u,15000);if(!j||!j.files)throw new Error('drive');
+    for(const f of j.files){if(f.mimeType==='application/vnd.google-apps.folder'){if(depth<3)await ls(f.id,depth===0?f.name:genre,depth+1);continue}
+      if(f.mimeType==='application/vnd.google-apps.shortcut'||!BOOKRE.test(f.name))continue;
+      out.push({titulo:cleanName(f.name),arquivo:'https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media&key='+K,formato:f.name.match(BOOKRE)[1].toLowerCase(),capa:f.thumbnailLink?f.thumbnailLink.replace(/=s\d+$/,'=s400'):null,genero:genre||cfg.generoRaiz||'Acervo',descricao:f.description||'',autor:''})}
+    tok=j.nextPageToken||''}while(tok)}
+  await ls(cfg.pasta,'',0);return out}
+async function loadDrive(){const cfg=await getJSON('acervo/drive.json');if(!cfg||!cfg.pasta||!cfg.chave)return [];
+  try{const l=await driveList(cfg);try{localStorage.setItem('estante.drive',JSON.stringify(l))}catch(e){}return l}
+  catch(e){try{return JSON.parse(localStorage.getItem('estante.drive')||'[]')}catch(_){return []}}}
+async function loadAcervo(){try{const [j,dv]=await Promise.all([getJSON('acervo/catalogo.json'),loadDrive()]);
+  const ls=((j&&j.livros)||[]).concat(dv).filter(l=>l&&l.titulo&&l.arquivo&&l.genero);if(!ls.length)return null;
+  const imgs={};await Promise.all(ls.filter(l=>l.capa).slice(0,120).map(l=>new Promise(res=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{imgs[l.capa]=im;res()};im.onerror=res;im.src=l.capa;setTimeout(res,5000)})));
+  const row=l=>[String(l.titulo).slice(0,120),String(l.titulo).slice(0,120),String(l.autor||'').slice(0,80)||'—',+l.ano||new Date(l.data||Date.now()).getFullYear(),String(l.descricao||'').slice(0,1500)||(l.formato==='zip'?'Livro do acervo público. Toque em “Ler agora” para baixar e começar a ler.':'Sem descrição.'),{u:l.arquivo,fmt:l.formato||'pdf',cover:l.capa||null,own:1}];
   const groups=new Map();for(const l of ls){const k=nrm(l.genero);if(!groups.has(k))groups.set(k,{n:String(l.genero).slice(0,40),list:[]});groups.get(k).list.push(l)}
   return {key:JSON.stringify(ls.map(l=>[l.titulo,l.arquivo,l.capa,l.genero])),groups,row,imgs}}catch(e){return null}}
 function mergeSections(base,ac){const secs=base.map(g=>Object.assign({},g,{books:g.books.slice()}));if(!ac)return secs;const PAL2=['#1d3557','#3d405b','#264653','#5b3f8c','#7a4419','#0f4c5c','#6d597a','#2a7f62'];
